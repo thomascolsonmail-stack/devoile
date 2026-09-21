@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(cuid())
+  username            String   @unique
+  firstName           String
+  passwordHash        String
+  failedLoginAttempts Int      @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime @default(now())
+
+  memberships Membership[]
+  ownedGroups Group[]      @relation("GroupOwner")
+  media       Media[]
+  reactions   Reaction[]
+}
+
+model Group {
+  id           String   @id @default(cuid())
+  name         String
+  wallpaperUrl String?
+  revealAt     DateTime
+  inviteCode   String   @unique
+  ownerId      String
+  createdAt    DateTime @default(now())
+
+  owner       User         @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  media       Media[]
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  userId   String
+  groupId  String
+  joinedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model Media {
+  id         String   @id @default(cuid())
+  groupId    String
+  uploaderId String
+  url        String
+  blurredUrl String?
+  type       String
+  capturedAt DateTime
+  uploadedAt DateTime @default(now())
+
+  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  uploader  User       @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  mediaId   String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaId, userId, emoji])
+}
