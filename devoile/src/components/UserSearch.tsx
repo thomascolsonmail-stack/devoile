@@ -7,20 +7,13 @@ type UserResult = { id: string; username: string; firstName: string };
 export default function UserSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     const timeout = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query.trim())}`);
         if (res.ok) {
           const data = await res.json();
           setResults(data.users);
@@ -28,10 +21,12 @@ export default function UserSearch() {
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 250); // debounce léger pendant la frappe ; se déclenche aussi au chargement (query vide → tout le monde)
 
     return () => clearTimeout(timeout);
   }, [query]);
+
+  const trimmed = query.trim();
 
   return (
     <div className="space-y-4">
@@ -43,10 +38,16 @@ export default function UserSearch() {
         autoFocus
       />
 
-      {loading && <p className="text-sm text-white/40">Recherche...</p>}
+      {loading && <p className="text-sm text-white/40">Chargement...</p>}
 
-      {!loading && query.trim().length >= 2 && results.length === 0 && (
-        <p className="text-sm text-white/40">Personne ne correspond à « {query.trim()} ».</p>
+      {!loading && (
+        <p className="text-sm text-white/40">
+          {trimmed ? `${results.length} résultat${results.length > 1 ? "s" : ""}` : `${results.length} personne${results.length > 1 ? "s" : ""} au total`}
+        </p>
+      )}
+
+      {!loading && trimmed && results.length === 0 && (
+        <p className="text-sm text-white/40">Personne ne correspond à « {trimmed} ».</p>
       )}
 
       <ul className="space-y-2">
@@ -59,7 +60,7 @@ export default function UserSearch() {
               <p className="font-semibold truncate">{u.firstName}</p>
               <p className="text-sm text-white/40 truncate">@{u.username}</p>
             </div>
-          </li>
+          </div>
         ))}
       </ul>
     </div>
