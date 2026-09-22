@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 export default function UploadArea({ groupId }: { groupId: string }) {
   const router = useRouter();
-  const captureRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -18,6 +19,8 @@ export default function UploadArea({ groupId }: { groupId: string }) {
     setProgress({ done: 0, total: files.length });
 
     let failures = 0;
+    let lastErrorMessage: string | null = null;
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const capturedAt = new Date(file.lastModified || Date.now()).toISOString();
@@ -26,7 +29,11 @@ export default function UploadArea({ groupId }: { groupId: string }) {
       form.append("capturedAt", capturedAt);
       try {
         const res = await fetch(`/api/groups/${groupId}/media`, { method: "POST", body: form });
-        if (!res.ok) failures++;
+        if (!res.ok) {
+          failures++;
+          const data = await res.json().catch(() => null);
+          if (data?.error) lastErrorMessage = data.error;
+        }
       } catch {
         failures++;
       }
@@ -34,8 +41,17 @@ export default function UploadArea({ groupId }: { groupId: string }) {
     }
 
     setUploading(false);
-    if (failures > 0) setError(`${failures} fichier(s) n'ont pas pu être envoyés.`);
+    if (failures > 0) {
+      setError(lastErrorMessage || `${failures} fichier(s) n'ont pas pu être envoyés.`);
+    }
     router.refresh();
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    uploadFiles(e.target.files);
+    // Sans ça, sélectionner deux fois de suite le même fichier (ex : reprendre
+    // une photo juste après ratée) ne redéclenche pas onChange.
+    e.target.value = "";
   }
 
   return (
@@ -45,36 +61,62 @@ export default function UploadArea({ groupId }: { groupId: string }) {
         <button
           type="button"
           className="btn-primary py-4 flex-col text-sm"
-          onClick={() => captureRef.current?.click()}
+          onClick={() => photoRef.current?.click()}
           disabled={uploading}
         >
-          📷 Prendre une photo/vidéo
+          📷 Photo
         </button>
         <button
           type="button"
-          className="btn-secondary py-4 flex-col text-sm"
-          onClick={() => importRef.current?.click()}
+          className="btn-primary py-4 flex-col text-sm"
+          onClick={() => videoRef.current?.click()}
           disabled={uploading}
         >
-          🖼️ Importer
+          🎥 Vidéo
         </button>
       </div>
 
+      <button
+        type="button"
+        className="btn-secondary py-3 w-full mt-3 text-sm"
+        onClick={() => importRef.current?.click()}
+        disabled={uploading}
+      >
+        🖼️ Importer depuis la galerie
+      </button>
+
+      {/*
+        Deux inputs caméra séparés, un par type de média : combiner
+        accept="image/*,video/*" avec capture="environment" dans un seul
+        <input> ouvre la caméra de façon peu fiable sur mobile (notamment
+        iOS Safari, qui ignore souvent la vidéo dans ce cas). En limitant
+        chaque input à un seul type, la caméra s'ouvre systématiquement
+        dans le bon mode (photo ou vidéo).
+      */}
       <input
-        ref={captureRef}
+        ref={photoRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => uploadFiles(e.target.files)}
+        onChange={handleChange}
       />
+      <input
+        ref={videoRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleChange}
+      />
+      {/* Import depuis la galerie : pas de "capture", tous types, multi-fichiers. */}
       <input
         ref={importRef}
         type="file"
         accept="image/*,video/*"
         multiple
         className="hidden"
-        onChange={(e) => uploadFiles(e.target.files)}
+        onChange={handleChange}
       />
 
       {uploading && (
