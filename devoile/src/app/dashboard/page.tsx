@@ -24,17 +24,23 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="flex items-center gap-3">
-      <Link
-        href="/search"
-        className="w-10 h-10 rounded-full bg-panel2 border border-white/10 flex items-center justify-center text-lg"
-        aria-label="Rechercher des gens"
-      >
-        🔍
-      </Link>
-      <LogoutButton />
-    </div>
+    <main className="min-h-screen pb-24 pt-8">
+      {/* EN-TÊTE : Titre + Boutons (Recherche et Déconnexion alignés à droite) */}
+      <div className="px-6 flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">Mes Groupes</h1>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/search"
+            className="w-10 h-10 rounded-full bg-panel2 border border-white/10 flex items-center justify-center text-lg"
+            aria-label="Rechercher des gens"
+          >
+            🔍
+          </Link>
+          <LogoutButton />
+        </div>
+      </div>
 
+      {/* REJOINDRE UN GROUPE */}
       <div className="px-6 mb-6">
         <div className="card p-4">
           <p className="label mb-2">Rejoindre avec un code</p>
@@ -42,6 +48,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* LISTE DES GROUPES */}
       <div className="px-6 space-y-4">
         {memberships.length === 0 && (
           <div className="card p-8 text-center text-white/50">
@@ -77,9 +84,10 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* BOUTON FLOTTANT + */}
       <Link
         href="/groups/new"
-        className="fixed bottom-6 right-6 btn-primary rounded-full w-16 h-16 text-2xl shadow-2xl"
+        className="fixed bottom-6 right-6 btn-primary rounded-full w-16 h-16 text-2xl shadow-2xl flex items-center justify-center pb-1"
         aria-label="Créer un groupe"
       >
         +
