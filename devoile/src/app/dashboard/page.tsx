@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen pb-24 pt-8">
-      {/* EN-TÊTE : Titre + Boutons (Recherche et Déconnexion alignés à droite) */}
+      {/* EN-TÊTE */}
       <div className="px-6 flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Mes Groupes</h1>
         <div className="flex items-center gap-3">
