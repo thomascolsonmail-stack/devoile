@@ -21,7 +21,7 @@ export default function UserSearch() {
       } finally {
         setLoading(false);
       }
-    }, 250); // debounce léger pendant la frappe ; se déclenche aussi au chargement (query vide → tout le monde)
+    }, 250);
 
     return () => clearTimeout(timeout);
   }, [query]);
@@ -60,7 +60,7 @@ export default function UserSearch() {
               <p className="font-semibold truncate">{u.firstName}</p>
               <p className="text-sm text-white/40 truncate">@{u.username}</p>
             </div>
-          </div>
+          </li>
         ))}
       </ul>
     </div>
