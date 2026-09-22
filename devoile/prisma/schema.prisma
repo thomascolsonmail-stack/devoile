@@ -20,6 +20,7 @@ model User {
   ownedGroups Group[]      @relation("GroupOwner")
   media       Media[]
   reactions   Reaction[]
+  messages Message[]
 }
 
 model Group {
@@ -29,11 +30,13 @@ model Group {
   revealAt     DateTime
   inviteCode   String   @unique
   ownerId      String
+  chatEnabled  Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   owner       User         @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   memberships Membership[]
   media       Media[]
+  messages    Message[]
 }
 
 model Membership {
@@ -74,4 +77,15 @@ model Reaction {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([mediaId, userId, emoji])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  groupId   String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }

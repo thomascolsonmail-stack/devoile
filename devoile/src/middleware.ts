@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/groups/:path*"]
+  matcher: ["/dashboard/:path*", "/groups/:path*", "/search/:path*"]
 };
 
 export async function middleware(req: NextRequest) {

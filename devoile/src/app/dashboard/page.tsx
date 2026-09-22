@@ -24,14 +24,16 @@ export default async function DashboardPage() {
   });
 
   return (
-    <main className="min-h-screen pb-24">
-      <header className="flex items-center justify-between px-6 pt-8 pb-4">
-        <div>
-          <p className="text-white/40 text-sm">Salut {user.firstName} 👋</p>
-          <h1 className="text-2xl font-bold">Tes groupes</h1>
-        </div>
-        <LogoutButton />
-      </header>
+    <div className="flex items-center gap-3">
+      <Link
+        href="/search"
+        className="w-10 h-10 rounded-full bg-panel2 border border-white/10 flex items-center justify-center text-lg"
+        aria-label="Rechercher des gens"
+      >
+        🔍
+      </Link>
+      <LogoutButton />
+    </div>
 
       <div className="px-6 mb-6">
         <div className="card p-4">

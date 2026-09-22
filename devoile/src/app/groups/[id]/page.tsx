@@ -1,3 +1,7 @@
+import MembersList from "@/components/MembersList";
+import DeleteGroupButton from "@/components/DeleteGroupButton";
+import ChatToggle from "@/components/ChatToggle";
+import GroupChat from "@/components/GroupChat";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -36,6 +40,7 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
     _count: true
   });
   const countByUser = new Map(perUserCounts.map((c) => [c.uploaderId, c._count]));
+  const countByUserObj = Object.fromEntries(countByUser);
 
   let mediaItems: MediaItem[] = [];
   let teaserItems: TeaserItem[] = [];
@@ -111,17 +116,14 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
             {group.memberships.length} membre{group.memberships.length > 1 ? "s" : ""} · {totalMedia} photo
             {totalMedia > 1 ? "s" : ""}
           </p>
-          <ul className="space-y-2">
-            {group.memberships.map((m) => (
-              <li key={m.id} className="flex items-center justify-between text-sm">
-                <span>
-                  {m.user.firstName}
-                  {m.userId === group.ownerId && <span className="text-white/40"> · organisateur</span>}
-                </span>
-                <span className="text-white/40">{countByUser.get(m.userId) || 0} envoi(s)</span>
-              </li>
-            ))}
-          </ul>
+          <MembersList
+            groupId={group.id}
+            members={group.memberships.map((m) => ({ id: m.id, userId: m.userId, firstName: m.user.firstName }))}
+            ownerId={group.ownerId}
+            currentUserId={user.id}
+            isOwner={isOwner}
+            countByUser={countByUserObj}
+          />
         </div>
 
         {!revealed && <BlurPreview items={teaserItems} revealAt={group.revealAt.toISOString()} />}
@@ -153,6 +155,28 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
             ) : (
               <MediaGrid groupId={group.id} initialMedia={mediaItems} />
             )}
+          </div>
+        )}
+        {group.chatEnabled && (
+          <div className="card p-5">
+            <p className="label mb-3">💬 Discussion</p>
+            <GroupChat groupId={group.id} currentUserId={user.id} />
+          </div>
+        )}
+
+        {!group.chatEnabled && !isOwner && (
+          <div className="card p-5 text-sm text-white/40 text-center">
+            Le chat est désactivé pour ce groupe.
+          </div>
+        )}
+
+        {isOwner && (
+          <div className="card p-5 space-y-5">
+            <p className="label">Paramètres du groupe</p>
+            <ChatToggle groupId={group.id} initialEnabled={group.chatEnabled} />
+            <div className="border-t border-white/10 pt-4">
+              <DeleteGroupButton groupId={group.id} groupName={group.name} />
+            </div>
           </div>
         )}
       </div>

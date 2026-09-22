@@ -1,3 +1,5 @@
+export const ALLOWED_REACTION_EMOJIS = ["❤️", "😂", "😍", "😮", "👍", "🔥"];
+export const MAX_MESSAGE_LENGTH = 500;
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 Mo
 export const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 Mo
 export const MAX_WALLPAPER_BYTES = 10 * 1024 * 1024; // 10 Mo
