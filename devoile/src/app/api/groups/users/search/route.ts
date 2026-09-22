@@ -7,21 +7,22 @@ export async function GET(req: NextRequest) {
     const user = await requireUser();
 
     const q = req.nextUrl.searchParams.get("q")?.trim() || "";
-    if (q.length < 2) {
-      return NextResponse.json({ users: [] });
-    }
 
     const users = await prisma.user.findMany({
       where: {
         id: { not: user.id },
-        OR: [
-          { username: { contains: q, mode: "insensitive" } },
-          { firstName: { contains: q, mode: "insensitive" } }
-        ]
+        ...(q
+          ? {
+              OR: [
+                { username: { contains: q, mode: "insensitive" } },
+                { firstName: { contains: q, mode: "insensitive" } }
+              ]
+            }
+          : {})
       },
       select: { id: true, username: true, firstName: true },
       orderBy: { firstName: "asc" },
-      take: 20
+      take: 50
     });
 
     return NextResponse.json({ users });
