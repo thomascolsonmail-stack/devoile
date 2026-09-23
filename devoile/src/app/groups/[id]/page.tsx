@@ -176,6 +176,7 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
         {isOwner && (
           <div className="card p-5 space-y-5">
             <p className="label">Paramètres du groupe</p>
+            <NudgeButton groupId={group.id} />
             <ChatToggle groupId={group.id} initialEnabled={group.chatEnabled} />
             <div className="border-t border-white/10 pt-4">
               <DeleteGroupButton groupId={group.id} groupName={group.name} />
