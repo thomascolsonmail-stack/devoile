@@ -1,3 +1,4 @@
+import { sendPushToUsers } from "@/lib/push";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthenticatedError } from "@/lib/auth";
@@ -28,6 +29,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       create: { userId: target.id, groupId: group.id },
       update: {}
     });
+
+    await sendPushToUsers([target.id], {
+      title: "Dévoile",
+      body: `Tu as été ajouté·e au groupe « ${group.name} ».`,
+      url: `/groups/${group.id}`
+    }).catch((err) => console.error("Erreur envoi notification :", err));
 
     return NextResponse.json({ firstName: target.firstName });
   } catch (err) {

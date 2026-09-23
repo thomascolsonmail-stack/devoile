@@ -4,8 +4,8 @@ export const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 Mo
 export const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 Mo
 export const MAX_WALLPAPER_BYTES = 10 * 1024 * 1024; // 10 Mo
 
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/gif"];
-const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"];
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/gif"];
+export const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"];
 
 export function classifyMediaType(mimeType: string): "photo" | "video" | null {
   if (ALLOWED_IMAGE_TYPES.includes(mimeType)) return "photo";

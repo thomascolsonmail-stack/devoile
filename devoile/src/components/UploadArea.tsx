@@ -2,6 +2,11 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
+
+// Mets NEXT_PUBLIC_HAS_BLOB="true" UNIQUEMENT quand BLOB_READ_WRITE_TOKEN
+// est configuré côté serveur (prod). Sinon repli sur l'ancien envoi serveur.
+const HAS_BLOB = process.env.NEXT_PUBLIC_HAS_BLOB === "true";
 
 export default function UploadArea({ groupId }: { groupId: string }) {
   const router = useRouter();
@@ -9,14 +14,54 @@ export default function UploadArea({ groupId }: { groupId: string }) {
   const videoRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [fileIndex, setFileIndex] = useState(0);
+  const [fileTotal, setFileTotal] = useState(0);
+  const [filePercent, setFilePercent] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const overallPercent =
+    fileTotal > 0 ? Math.round(((fileIndex + filePercent / 100) / fileTotal) * 100) : 0;
+
+  async function uploadViaBlob(file: File, capturedAt: string) {
+    await upload(`groups/${groupId}/${file.name}`, file, {
+      access: "public",
+      handleUploadUrl: `/api/groups/${groupId}/media/upload-token`,
+      clientPayload: JSON.stringify({ capturedAt }),
+      onUploadProgress: ({ percentage }) => setFilePercent(percentage)
+    });
+  }
+
+  function uploadViaServer(file: File, capturedAt: string) {
+    return new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `/api/groups/${groupId}/media`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setFilePercent(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) return resolve();
+        try {
+          const data = JSON.parse(xhr.responseText);
+          reject(new Error(data.error || "Erreur lors de l'envoi."));
+        } catch {
+          reject(new Error("Erreur lors de l'envoi."));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Erreur réseau lors de l'envoi."));
+      const form = new FormData();
+      form.append("file", file);
+      form.append("capturedAt", capturedAt);
+      xhr.send(form);
+    });
+  }
 
   async function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setError(null);
     setUploading(true);
-    setProgress({ done: 0, total: files.length });
+    setFileTotal(files.length);
+    setFileIndex(0);
+    setFilePercent(0);
 
     let failures = 0;
     let lastErrorMessage: string | null = null;
@@ -24,20 +69,18 @@ export default function UploadArea({ groupId }: { groupId: string }) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const capturedAt = new Date(file.lastModified || Date.now()).toISOString();
-      const form = new FormData();
-      form.append("file", file);
-      form.append("capturedAt", capturedAt);
+      setFilePercent(0);
       try {
-        const res = await fetch(`/api/groups/${groupId}/media`, { method: "POST", body: form });
-        if (!res.ok) {
-          failures++;
-          const data = await res.json().catch(() => null);
-          if (data?.error) lastErrorMessage = data.error;
+        if (HAS_BLOB) {
+          await uploadViaBlob(file, capturedAt);
+        } else {
+          await uploadViaServer(file, capturedAt);
         }
-      } catch {
+      } catch (err) {
         failures++;
+        lastErrorMessage = err instanceof Error ? err.message : null;
       }
-      setProgress((p) => ({ ...p, done: p.done + 1 }));
+      setFileIndex(i + 1);
     }
 
     setUploading(false);
@@ -49,8 +92,6 @@ export default function UploadArea({ groupId }: { groupId: string }) {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     uploadFiles(e.target.files);
-    // Sans ça, sélectionner deux fois de suite le même fichier (ex : reprendre
-    // une photo juste après ratée) ne redéclenche pas onChange.
     e.target.value = "";
   }
 
@@ -60,7 +101,7 @@ export default function UploadArea({ groupId }: { groupId: string }) {
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          className="btn-primary py-4 flex-col text-sm"
+          className="btn-primary py-4 text-sm"
           onClick={() => photoRef.current?.click()}
           disabled={uploading}
         >
@@ -68,7 +109,7 @@ export default function UploadArea({ groupId }: { groupId: string }) {
         </button>
         <button
           type="button"
-          className="btn-primary py-4 flex-col text-sm"
+          className="btn-primary py-4 text-sm"
           onClick={() => videoRef.current?.click()}
           disabled={uploading}
         >
@@ -85,14 +126,6 @@ export default function UploadArea({ groupId }: { groupId: string }) {
         🖼️ Importer depuis la galerie
       </button>
 
-      {/*
-        Deux inputs caméra séparés, un par type de média : combiner
-        accept="image/*,video/*" avec capture="environment" dans un seul
-        <input> ouvre la caméra de façon peu fiable sur mobile (notamment
-        iOS Safari, qui ignore souvent la vidéo dans ce cas). En limitant
-        chaque input à un seul type, la caméra s'ouvre systématiquement
-        dans le bon mode (photo ou vidéo).
-      */}
       <input
         ref={photoRef}
         type="file"
@@ -109,7 +142,6 @@ export default function UploadArea({ groupId }: { groupId: string }) {
         className="hidden"
         onChange={handleChange}
       />
-      {/* Import depuis la galerie : pas de "capture", tous types, multi-fichiers. */}
       <input
         ref={importRef}
         type="file"
@@ -120,9 +152,20 @@ export default function UploadArea({ groupId }: { groupId: string }) {
       />
 
       {uploading && (
-        <p className="text-sm text-white/50 mt-3">
-          Envoi en cours... {progress.done}/{progress.total}
-        </p>
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-xs text-white/50 mb-1">
+            <span>
+              Envoi {Math.min(fileIndex + 1, fileTotal)}/{fileTotal}
+            </span>
+            <span>{overallPercent}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-accent2 transition-all duration-150"
+              style={{ width: `${overallPercent}%` }}
+            />
+          </div>
+        </div>
       )}
       {error && <p className="text-sm text-accent mt-3">{error}</p>}
     </div>
