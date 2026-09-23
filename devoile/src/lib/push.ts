@@ -15,12 +15,8 @@ type PushPayload = {
   url?: string;
 };
 
-export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
-  if (!publicKey || !privateKey || userIds.length === 0) return;
-
-  const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId: { in: userIds } }
-  });
+async function deliver(subscriptions: { id: string; endpoint: string; p256dh: string; auth: string }[], payload: PushPayload) {
+  if (!publicKey || !privateKey) return;
 
   await Promise.all(
     subscriptions.map(async (sub) => {
@@ -38,4 +34,26 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
       }
     })
   );
+}
+
+/**
+ * Notifications "obligatoires" : ajout à un groupe, rappel admin. Envoyées à
+ * tout abonnement actif, indépendamment de la préférence de chat.
+ */
+export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
+  if (userIds.length === 0) return;
+  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } });
+  await deliver(subscriptions, payload);
+}
+
+/**
+ * Notifications de chat : respectent la préférence par appareil
+ * (chatNotifications), togglable dans l'app via NotificationToggle.
+ */
+export async function sendChatPushToUsers(userIds: string[], payload: PushPayload) {
+  if (userIds.length === 0) return;
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: { userId: { in: userIds }, chatNotifications: true }
+  });
+  await deliver(subscriptions, payload);
 }

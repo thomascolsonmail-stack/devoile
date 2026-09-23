@@ -1,3 +1,4 @@
+import NotificationGate from "@/components/NotificationGate";
 import NudgeButton from "@/components/NudgeButton";
 import NotificationToggle from "@/components/NotificationToggle";
 import MembersList from "@/components/MembersList";
@@ -85,6 +86,7 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
   }
 
   return (
+    <NotificationGate>
     <main className="min-h-screen pb-24">
       <div
         className="relative h-48 flex items-end p-6"
@@ -185,5 +187,6 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
         )}
       </div>
     </main>
+    </NotificationGate>
   );
 }

@@ -1,3 +1,4 @@
+import NotificationGate from "@/components/NotificationGate";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -23,8 +24,9 @@ export default async function DashboardPage() {
     orderBy: { group: { revealAt: "asc" } }
   });
 
-  return (
-    <main className="min-h-screen pb-24 pt-8">
+    return (
+      <NotificationGate>
+      <main className="min-h-screen pb-24">
       {/* EN-TÊTE */}
       <div className="px-6 flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Mes Groupes</h1>
@@ -93,5 +95,6 @@ export default async function DashboardPage() {
         +
       </Link>
     </main>
+    </NotificationGate>
   );
 }
