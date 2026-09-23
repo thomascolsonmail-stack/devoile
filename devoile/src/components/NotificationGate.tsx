@@ -40,6 +40,7 @@ export default function NotificationGate({ children }: { children: React.ReactNo
       .catch(() => setStatus("needed"));
   }, []);
 
+  
   async function activate() {
     setLoading(true);
     setError(null);
