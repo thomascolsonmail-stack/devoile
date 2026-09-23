@@ -1,3 +1,4 @@
+import NotificationToggle from "@/components/NotificationToggle";
 import MembersList from "@/components/MembersList";
 import DeleteGroupButton from "@/components/DeleteGroupButton";
 import ChatToggle from "@/components/ChatToggle";
@@ -158,8 +159,9 @@ export default async function GroupPage({ params }: { params: { id: string } }) 
           </div>
         )}
         {group.chatEnabled && (
-          <div className="card p-5">
-            <p className="label mb-3">💬 Discussion</p>
+          <div className="card p-5 space-y-4">
+            <p className="label">💬 Discussion</p>
+            <NotificationToggle />
             <GroupChat groupId={group.id} currentUserId={user.id} />
           </div>
         )}

@@ -1,3 +1,4 @@
+import { sendPushToUsers } from "@/lib/push";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthenticatedError } from "@/lib/auth";
@@ -20,6 +21,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       include: { author: { select: { firstName: true } } },
       take: 200
     });
+
+    const otherMembers = await prisma.membership.findMany({
+      where: { groupId: params.id, userId: { not: user.id } },
+      select: { userId: true }
+    });
+
+    await sendPushToUsers(
+      otherMembers.map((m) => m.userId),
+      { title: group.name, body: `${user.firstName} : ${content}`, url: `/groups/${params.id}` }
+    ).catch((err) => console.error("Erreur envoi notifications :", err));
 
     return NextResponse.json({
       messages: messages.map((m) => ({
