@@ -55,8 +55,8 @@ export default function NotificationGate({ children }: { children: React.ReactNo
       }
       await ensurePushSubscription();
       setStatus("granted");
-    } catch {
-      setError("Impossible d'activer les notifications. Réessaie.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue. Réessaie.");
     } finally {
       setLoading(false);
     }
