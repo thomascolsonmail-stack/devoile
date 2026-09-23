@@ -21,6 +21,7 @@ model User {
   media       Media[]
   reactions   Reaction[]
   messages Message[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Group {
