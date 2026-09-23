@@ -1,8 +1,7 @@
-import { sendPushToUsers } from "@/lib/push";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthenticatedError } from "@/lib/auth";
-import { MAX_MESSAGE_LENGTH } from "@/lib/media";
+import { sendPushToUsers } from "@/lib/push";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -21,16 +20,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       include: { author: { select: { firstName: true } } },
       take: 200
     });
-
-    const otherMembers = await prisma.membership.findMany({
-      where: { groupId: params.id, userId: { not: user.id } },
-      select: { userId: true }
-    });
-
-    await sendPushToUsers(
-      otherMembers.map((m) => m.userId),
-      { title: group.name, body: `${user.firstName} : ${content}`, url: `/groups/${params.id}` }
-    ).catch((err) => console.error("Erreur envoi notifications :", err));
 
     return NextResponse.json({
       messages: messages.map((m) => ({
@@ -54,6 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     const user = await requireUser();
 
+    // 1. On récupère bien le groupe ICI (ce qui définit la variable 'group')
     const group = await prisma.group.findUnique({ where: { id: params.id } });
     if (!group) return NextResponse.json({ error: "Groupe introuvable." }, { status: 404 });
 
@@ -71,14 +61,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = await req.json().catch(() => null);
     const content = typeof body?.content === "string" ? body.content.trim() : "";
     if (!content) return NextResponse.json({ error: "Message vide." }, { status: 400 });
-    if (content.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json({ error: `Message trop long (max ${MAX_MESSAGE_LENGTH} caractères).` }, { status: 400 });
+    if (content.length > 500) {
+      return NextResponse.json({ error: "Message trop long (max 500 caractères)." }, { status: 400 });
     }
 
+    // 2. On crée le message
     const message = await prisma.message.create({
       data: { groupId: params.id, authorId: user.id, content }
     });
 
+    // 3. On envoie la notification push aux autres membres (qui utilise 'group.name')
+    const otherMembers = await prisma.membership.findMany({
+      where: { groupId: params.id, userId: { not: user.id } },
+      select: { userId: true }
+    });
+    
+    await sendPushToUsers(
+      otherMembers.map((m) => m.userId),
+      { title: group.name, body: `${user.firstName} : ${content}`, url: `/groups/${params.id}` }
+    ).catch((err) => console.error("Erreur envoi notifications :", err));
+
+    // 4. On renvoie la réponse au client
     return NextResponse.json({
       id: message.id,
       content: message.content,
