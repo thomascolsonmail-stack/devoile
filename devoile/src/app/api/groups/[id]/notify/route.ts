@@ -29,6 +29,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Connecte-toi d'abord." }, { status: 401 });
     }
     console.error(err);
-    return NextResponse.json({ error: "Erreur lors de l'envoi." }, { status: 500 });
+    // ASTUCE : On affiche le vrai message d'erreur au lieu du texte générique
+    return NextResponse.json({ 
+      error: "Erreur : " + ((err as Error).message || "inconnue") 
+    }, { status: 500 });
   }
 }
