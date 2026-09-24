@@ -2,7 +2,6 @@ import { sendPushToUsers } from "@/lib/push";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthenticatedError } from "@/lib/auth";
-import { sendPushToUsers } from "@/lib/push";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
