@@ -1,4 +1,4 @@
-import { sendChatPushToUsers } from "@/lib/push";
+import { sendPushToUsers } from "@/lib/push";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthenticatedError } from "@/lib/auth";
@@ -82,10 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { title: group.name, body: `${user.firstName} : ${content}`, url: `/groups/${params.id}` }
     ).catch((err) => console.error("Erreur envoi notifications :", err));
 
-    await sendChatPushToUsers(
-      otherMembers.map((m) => m.userId),
-      { title: group.name, body: `${user.firstName} : ${content}`, url: `/groups/${params.id}` }
-    ).catch((err) => console.error("Erreur envoi notifications :", err));
+    
 
     // 4. On renvoie la réponse au client
     return NextResponse.json({

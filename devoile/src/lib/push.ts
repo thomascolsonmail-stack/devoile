@@ -15,8 +15,22 @@ type PushPayload = {
   url?: string;
 };
 
-async function deliver(subscriptions: { id: string; endpoint: string; p256dh: string; auth: string }[], payload: PushPayload) {
+export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
+  if (userIds.length === 0) return;
+
+  // Historique in-app (onglet Notifs), indépendant de la réussite de l'envoi push.
+  await prisma.notificationLog.createMany({
+    data: userIds.map((userId) => ({
+      userId,
+      title: payload.title,
+      body: payload.body,
+      url: payload.url ?? null
+    }))
+  });
+
   if (!publicKey || !privateKey) return;
+
+  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } });
 
   await Promise.all(
     subscriptions.map(async (sub) => {
@@ -34,26 +48,4 @@ async function deliver(subscriptions: { id: string; endpoint: string; p256dh: st
       }
     })
   );
-}
-
-/**
- * Notifications "obligatoires" : ajout à un groupe, rappel admin. Envoyées à
- * tout abonnement actif, indépendamment de la préférence de chat.
- */
-export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
-  if (userIds.length === 0) return;
-  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } });
-  await deliver(subscriptions, payload);
-}
-
-/**
- * Notifications de chat : respectent la préférence par appareil
- * (chatNotifications), togglable dans l'app via NotificationToggle.
- */
-export async function sendChatPushToUsers(userIds: string[], payload: PushPayload) {
-  if (userIds.length === 0) return;
-  const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId: { in: userIds }, chatNotifications: true }
-  });
-  await deliver(subscriptions, payload);
 }

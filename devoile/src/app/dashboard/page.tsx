@@ -1,3 +1,4 @@
+import NotificationBell from "@/components/NotificationBell";
 import NotificationGate from "@/components/NotificationGate";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
@@ -38,6 +39,7 @@ export default async function DashboardPage() {
           >
             🔍
           </Link>
+          <NotificationBell />
           <LogoutButton />
         </div>
       </div>
