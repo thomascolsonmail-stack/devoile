@@ -14,7 +14,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     }
 
     const members = await prisma.membership.findMany({
-      where: { groupId: params.id, userId: { not: user.id } },
+      where: { groupId: params.id},
       select: { userId: true }
     });
 
